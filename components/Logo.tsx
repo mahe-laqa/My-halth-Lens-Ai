@@ -3,13 +3,14 @@ import React from 'react';
 interface LogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
+  layout?: 'horizontal' | 'vertical';
 }
 
-export const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
+export const Logo: React.FC<LogoProps> = ({ className = '', size = 'md', layout = 'horizontal' }) => {
   const dim = size === 'sm' ? 24 : size === 'md' ? 32 : 48;
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={`flex items-center ${layout === 'vertical' ? 'flex-col text-center gap-4' : 'flex-row gap-3'} ${className}`}>
       <div className="relative flex-shrink-0">
         <svg
           width={dim}
@@ -46,7 +47,7 @@ export const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
             strokeLinejoin="round"
           />
           
-          {/* Sparkle/Accent Detail for Charm */}
+          {/* Sparkle/Accent Detail for Charm - using new soft Gold */}
           <circle cx="28" cy="10" r="2" className="fill-accent" />
         </svg>
       </div>

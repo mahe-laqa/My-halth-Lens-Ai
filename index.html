@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MyHealthLens AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Nastaliq+Urdu:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -32,16 +33,17 @@
                 200: '#99f6e4',
                 300: '#5eead4',
                 400: '#2dd4bf', // Charming Teal
-                500: '#14b8a6',
-                600: '#0d9488', // Deep Teal (Primary Action)
+                500: '#2EAF92', // Aqua Green (Option 2) - For Focus/Hover
+                600: '#1BA4A0', // Deep Turquoise (Option 1) - Main Selection Color
                 700: '#0f766e', // Premium Dark Teal (Headers)
                 800: '#115e59',
                 900: '#134e4a',
               },
               accent: {
-                light: '#fde68a', // Soft Gold
-                DEFAULT: '#f59e0b', // Rich Gold
-                dark: '#b45309',
+                // STRICT PREMIUM GOLD PALETTE
+                light: '#D8B878',   // Secondary Soft Gold (Highlights)
+                DEFAULT: '#C9A86A', // Primary Premium Gold (Main)
+                dark: '#C9A86A',    // Using Primary Gold for text to strictly avoid browning
               }
             },
             fontFamily: {
@@ -54,11 +56,21 @@
             animation: {
               'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
               'slide-in': 'slideIn 0.3s ease-out forwards',
+              'fade-in': 'fadeIn 0.5s ease-out forwards',
+              'fade-in-up': 'fadeInUp 0.6s ease-out forwards',
             },
             keyframes: {
               slideIn: {
                 '0%': { transform: 'translateX(-100%)' },
                 '100%': { transform: 'translateX(0)' },
+              },
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              fadeInUp: {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
               }
             }
           }
@@ -68,7 +80,9 @@
     <style>
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #f8fafc;
+        /* Premium Soft Background Gradient: White to Very Pale Turquoise */
+        background: linear-gradient(135deg, #ffffff 0%, #f0fdfa 100%);
+        min-height: 100vh;
       }
       /* Custom scrollbar for cleaner look */
       ::-webkit-scrollbar {
@@ -90,6 +104,29 @@
       .font-arabic { font-family: 'Noto Sans Arabic', sans-serif; }
       .font-hindi { font-family: 'Noto Sans Devanagari', sans-serif; }
       .font-chinese { font-family: 'Noto Sans SC', sans-serif; }
+
+      /* Print Styles for Exporting PDF */
+      @media print {
+        .no-print {
+          display: none !important;
+        }
+        body {
+          background: white !important;
+          color: black;
+        }
+        .print-break-inside-avoid {
+          break-inside: avoid;
+        }
+        /* Ensure images print fully */
+        img {
+          max-width: 100% !important;
+          height: auto !important;
+        }
+        /* Hide scrollbars in print */
+        ::-webkit-scrollbar {
+          display: none;
+        }
+      }
     </style>
   <script type="importmap">
 {

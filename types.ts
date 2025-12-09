@@ -1,3 +1,15 @@
+
+export interface LabReport {
+  id: string;
+  timestamp: string; // ISO Date
+  summary: string;
+  fullAnalysis: AnalysisResponse; // The complete original analysis
+  imageData?: string; // Base64 Data URL of the original image (Mandatory for history)
+  originalData: {
+    text?: string;
+  };
+}
+
 export interface UserProfile {
   id: string; // Unique identifier for multi-profile
   name: string;
@@ -8,6 +20,7 @@ export interface UserProfile {
   language: string;
   culturalPreference: string;
   allergies: string;
+  medications?: string; // Feature: Medication Interaction
   history: {
     diabetes: boolean;
     highBp: boolean;
@@ -17,6 +30,8 @@ export interface UserProfile {
     heart: boolean;
     pregnancy: boolean;
   };
+  reports: LabReport[]; // 2-Year History Storage
+  reminderEnabled?: boolean; // Feature: Smart Reminder
 }
 
 export enum ResultStatus {
@@ -33,6 +48,9 @@ export interface LabTestResult {
   range: string;
   status: ResultStatus;
   explanation: string;
+  simpleDefinition?: string; // Feature: Term Simplifier
+  foodSuggestion?: string; // Feature: Nutrition Matcher
+  dailyRoutineTip?: string; // Feature: Lifestyle Matcher
 }
 
 export interface NutritionPlan {
@@ -43,11 +61,20 @@ export interface NutritionPlan {
 
 export interface AnalysisResponse {
   summary: string;
+  shortSummary?: string; // Feature: 30-Sec Summary
   results: LabTestResult[];
   nutrition: NutritionPlan[];
   lifestyle: string[];
   professionalConsultation: string | null;
   disclaimer: string;
+  trendInsight?: string; // Feature: Trend Insights
+  imageQuality?: string; // Feature: Report Quality
+  
+  // NEW EXTENSIONS
+  followUpQuestions?: string[]; // Feature: AI Follow-Up
+  nextTestSuggestion?: string; // Feature: Next Relevant Test
+  riskFactors?: string[]; // Feature: Soft Risk Flags
+  medicationNotes?: string; // Feature: Medication Interaction
 }
 
 export enum AppStep {
@@ -58,5 +85,8 @@ export enum AppStep {
   Analyzing,
   Results,
   History, // View History
-  Settings // Settings View
+  Settings, // Settings View
+  DietPlans, // New Module 1
+  SeasonalGuide, // New Module 2
+  HelpCentre // New Module 3
 }

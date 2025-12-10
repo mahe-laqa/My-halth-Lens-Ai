@@ -38,11 +38,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
             primary
           />
 
+          {/* UPDATED: Navigates to new ProfilePage */}
           <DashboardCard 
             icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>}
             title="Edit Profile"
             desc="Update medical history or personal details."
-            onClick={() => onNavigate(AppStep.Profile)}
+            onClick={() => onNavigate(AppStep.ProfilePage)} 
           />
 
           <DashboardCard 
@@ -116,6 +117,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ profile, onNavigate }) => 
              </span>
            </div>
         </div>
+      </div>
+
+      {/* Global Short Disclaimer */}
+      <div className="text-center mt-8 pb-4 border-t border-slate-100 pt-6">
+        <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+          This app provides general informational support only. It is not a medical diagnosis. Always consult a doctor for proper medical advice.
+        </p>
       </div>
     </div>
   );

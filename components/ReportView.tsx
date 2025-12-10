@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { AnalysisResponse, ResultStatus } from '../types';
+import { SummaryModal } from './SummaryModal';
 
 interface ReportViewProps {
   data: AnalysisResponse;
@@ -8,6 +9,7 @@ interface ReportViewProps {
   reportDate?: string; 
   reportImage?: string;
   onAskQuestion?: (q: string) => void;
+  userLanguage?: string;
 }
 
 const StatusBadge: React.FC<{ status: ResultStatus }> = ({ status }) => {
@@ -39,9 +41,15 @@ const getReportAgeText = (dateString?: string) => {
   return `${months} month${months > 1 ? 's' : ''} old`;
 };
 
-export const ReportView: React.FC<ReportViewProps> = ({ data, onReset, reportDate, reportImage, onAskQuestion }) => {
+export const ReportView: React.FC<ReportViewProps> = ({ data, onReset, reportDate, reportImage, onAskQuestion, userLanguage }) => {
   const [showShortSummary, setShowShortSummary] = useState(false);
   const [openTooltipId, setOpenTooltipId] = useState<number | null>(null); 
+
+  // Language alignment logic
+  const isRightAlign = ['urdu', 'arabic', 'hindi'].includes((userLanguage || '').toLowerCase());
+  const alignClass = isRightAlign ? 'text-right' : 'text-left';
+  const flexDirClass = isRightAlign ? 'flex-row-reverse' : 'flex-row';
+  const iconMarginClass = isRightAlign ? 'ml-3' : 'mr-3';
 
   const handleDownloadImage = () => { if (!reportImage) return; const link = document.createElement('a'); link.href = reportImage; link.download = `HealthLens_Original_${new Date().toISOString().split('T')[0]}.png`; document.body.appendChild(link); link.click(); document.body.removeChild(link); };
   const handlePrint = () => window.print();
@@ -76,30 +84,29 @@ export const ReportView: React.FC<ReportViewProps> = ({ data, onReset, reportDat
            </div>
         ) : (<div></div>)}
         <button onClick={onReset} className="text-sm text-brand-600 font-semibold hover:underline flex items-center bg-white px-3 py-1.5 rounded-full shadow-sm border border-brand-50 hover:bg-brand-50 transition">
-          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
           Back to Dashboard
         </button>
       </div>
 
-      {/* 30-Second Summary Toggle */}
+      {/* 30-Second Summary Toggle Button */}
       {data.shortSummary && (
         <div className="mb-6 no-print flex justify-end">
-           <button onClick={() => setShowShortSummary(!showShortSummary)} className="bg-accent text-white font-bold py-2 px-4 rounded-xl shadow-md flex items-center gap-2 hover:bg-yellow-600 transition text-sm">
-             <span>⚡ 30-Second Summary</span>
+           <button 
+             onClick={() => setShowShortSummary(true)} 
+             className="bg-accent text-white font-bold py-3 px-6 rounded-xl shadow-lg hover:bg-accent-light transition-transform transform hover:scale-105 flex items-center gap-2 text-sm uppercase tracking-wide"
+           >
+             <span>View 30-Second Summary</span>
            </button>
         </div>
       )}
 
       {/* Summary Modal */}
-      {showShortSummary && data.shortSummary && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in no-print" onClick={() => setShowShortSummary(false)}>
-           <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full border-t-4 border-accent relative" onClick={e => e.stopPropagation()}>
-              <h3 className="font-bold text-lg text-slate-800 mb-3 flex items-center"><span className="mr-2">⚡</span> Quick Summary</h3>
-              <p className="text-slate-600 leading-relaxed text-sm">{data.shortSummary}</p>
-              <button onClick={() => setShowShortSummary(false)} className="mt-4 w-full py-2 bg-slate-100 font-bold text-slate-600 rounded-lg hover:bg-slate-200">Close</button>
-           </div>
-        </div>
-      )}
+      <SummaryModal 
+        isOpen={showShortSummary} 
+        onClose={() => setShowShortSummary(false)} 
+        summaryText={data.shortSummary} 
+      />
 
       <div id="report-export-container">
         
@@ -205,26 +212,43 @@ export const ReportView: React.FC<ReportViewProps> = ({ data, onReset, reportDat
         </div>
 
         {/* --- RESPONSIVE LAYOUT CONTAINER --- */}
-        {/* Mobile: Vertical (flex-col), Desktop: Horizontal (md:flex-row) with strict 50% split */}
-        <div className="flex flex-col md:flex-row gap-6 mb-8 print:break-inside-avoid">
+        <div className="flex flex-col md:flex-row gap-5 items-start mb-8 print:break-inside-avoid">
           
           {/* 1. Personalized Nutrition (Left - 50%) */}
-          <div className="md:w-1/2 flex flex-col">
-             <div className="flex items-center mb-5 px-2">
-               <span className="text-accent mr-2 text-xl print:hidden">🎯</span>
+          <div className="w-full md:w-1/2">
+             <div className={`flex items-center mb-5 px-2 ${flexDirClass}`}>
+               <span className={`text-accent text-xl print:hidden ${isRightAlign ? 'ml-2' : 'mr-2'}`}>🎯</span>
                <h3 className="text-xl font-bold text-slate-800">Personalized Nutrition</h3>
              </div>
-             <div className="flex-1 space-y-6">
+             <div className="space-y-6">
                 {data.nutrition.map((plan, idx) => (
-                  <div key={idx} className="bg-white rounded-3xl shadow-md border border-brand-50 p-6 flex flex-col h-full hover:shadow-lg transition-shadow print:shadow-none print:border print:border-slate-300 print:rounded-lg print:break-inside-avoid">
+                  <div key={idx} className={`bg-white rounded-3xl shadow-md border border-brand-50 p-6 flex flex-col hover:shadow-lg transition-shadow print:shadow-none print:border print:border-slate-300 print:rounded-lg print:break-inside-avoid ${alignClass}`}>
                     <h4 className="text-lg font-bold text-brand-700 mb-4 border-b border-brand-50 pb-3">Goal: {plan.goal}</h4>
-                    <div className="mb-5 flex-1">
-                      <div className="flex items-center mb-3"><div className="w-2 h-2 rounded-full bg-green-500 mr-2 print:border print:border-black"></div><p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Recommended</p></div>
-                      <ul className="space-y-3">{plan.recommended.map((item, i) => (<li key={i} className="flex items-start text-sm text-slate-700 font-medium bg-green-50/40 p-2 rounded-lg border border-green-50 print:bg-transparent print:border-none print:p-0"><span className="text-green-600 mr-2">✓</span>{item}</li>))}</ul>
+                    <div className="mb-5">
+                      <div className={`flex items-center mb-3 ${flexDirClass}`}>
+                         <div className={`w-2 h-2 rounded-full bg-green-500 print:border print:border-black ${isRightAlign ? 'ml-2' : 'mr-2'}`}></div>
+                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Recommended</p>
+                      </div>
+                      <ul className="space-y-3">
+                        {plan.recommended.map((item, i) => (
+                          <li key={i} className={`flex items-start text-sm text-slate-700 font-medium bg-green-50/40 p-2 rounded-lg border border-green-50 print:bg-transparent print:border-none print:p-0 ${flexDirClass}`}>
+                            <span className={`text-green-600 ${iconMarginClass}`}>✓</span>{item}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                     <div>
-                      <div className="flex items-center mb-3"><div className="w-2 h-2 rounded-full bg-red-400 mr-2 print:border print:border-black"></div><p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Moderate / Avoid</p></div>
-                      <ul className="space-y-2">{plan.avoid.map((item, i) => (<li key={i} className="flex items-start text-sm text-slate-600 pl-2"><span className="text-red-400 mr-2">•</span>{item}</li>))}</ul>
+                      <div className={`flex items-center mb-3 ${flexDirClass}`}>
+                        <div className={`w-2 h-2 rounded-full bg-red-400 print:border print:border-black ${isRightAlign ? 'ml-2' : 'mr-2'}`}></div>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Moderate / Avoid</p>
+                      </div>
+                      <ul className="space-y-2">
+                        {plan.avoid.map((item, i) => (
+                          <li key={i} className={`flex items-start text-sm text-slate-600 pl-2 ${flexDirClass}`}>
+                            <span className={`text-red-400 ${iconMarginClass}`}>•</span>{item}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </div>
                 ))}
@@ -232,17 +256,26 @@ export const ReportView: React.FC<ReportViewProps> = ({ data, onReset, reportDat
           </div>
 
           {/* 2. Lifestyle Guidance (Right - 50%) */}
-          <div className="md:w-1/2 flex flex-col">
-             <div className="flex items-center mb-5 px-2">
-               <span className="w-1 h-5 bg-brand-400 rounded-full mr-3 print:hidden"></span>
+          <div className="w-full md:w-1/2">
+             <div className={`flex items-center mb-5 px-2 ${flexDirClass}`}>
+               <span className={`w-1 h-5 bg-brand-400 rounded-full print:hidden ${isRightAlign ? 'ml-3' : 'mr-3'}`}></span>
                <h3 className="text-xl font-bold text-slate-800">Lifestyle Guidance</h3>
              </div>
-             <div className="bg-white rounded-3xl shadow-md border border-brand-50 p-8 flex-1 print:shadow-none print:border print:border-slate-300 print:rounded-lg">
-                <ul className="space-y-4">{data.lifestyle.map((tip, idx) => (<li key={idx} className="flex items-start"><span className="flex-shrink-0 w-6 h-6 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-xs mr-3 mt-0.5 border border-brand-100 print:border-slate-300">✓</span><span className="text-slate-700 text-sm font-medium leading-relaxed">{tip}</span></li>))}</ul>
+             <div className={`bg-white rounded-3xl shadow-md border border-brand-50 p-8 print:shadow-none print:border print:border-slate-300 print:rounded-lg ${alignClass}`}>
+                <ul className="space-y-4">
+                  {data.lifestyle.map((tip, idx) => (
+                    <li key={idx} className={`flex items-start ${flexDirClass}`}>
+                      <span className={`flex-shrink-0 w-6 h-6 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center text-xs mt-0.5 border border-brand-100 print:border-slate-300 ${iconMarginClass}`}>✓</span>
+                      <span className="text-slate-700 text-sm font-medium leading-relaxed">{tip}</span>
+                    </li>
+                  ))}
+                </ul>
                 
                 {data.professionalConsultation && (
                   <div className="mt-8 bg-red-50 rounded-3xl border border-red-100 p-6 print:bg-transparent print:border print:border-red-200">
-                    <h3 className="text-lg font-bold text-red-800 mb-3 flex items-center"><span className="mr-2 text-2xl print:hidden">⚕️</span> Professional Consultation</h3>
+                    <h3 className={`text-lg font-bold text-red-800 mb-3 flex items-center ${flexDirClass}`}>
+                      <span className={`text-2xl print:hidden ${isRightAlign ? 'ml-2' : 'mr-2'}`}>⚕️</span> Professional Consultation
+                    </h3>
                     <p className="text-red-800 text-sm leading-relaxed font-medium bg-white/50 p-4 rounded-xl border border-red-100 print:bg-transparent print:p-0 print:border-none">{data.professionalConsultation}</p>
                     <div className="mt-4 text-xs text-red-600 font-semibold opacity-75">* Please schedule an appointment with your healthcare provider.</div>
                   </div>

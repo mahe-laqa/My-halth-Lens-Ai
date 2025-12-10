@@ -80,7 +80,8 @@ export interface AnalysisResponse {
 export enum AppStep {
   Welcome,
   Dashboard, // New Hub
-  Profile, // Create/Edit
+  Profile, // Create/Edit (Legacy)
+  ProfilePage, // NEW: Comprehensive Profile Page
   Upload,
   Analyzing,
   Results,

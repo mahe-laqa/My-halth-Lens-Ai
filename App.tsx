@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppStep, UserProfile, AnalysisResponse, LabReport } from './types';
 import { ProfileForm } from './components/ProfileForm';
+import { ProfilePageView } from './components/ProfilePageView'; // Import new component
 import { UploadSection } from './components/UploadSection';
 import { ReportView } from './components/ReportView';
 import { Dashboard } from './components/Dashboard';
@@ -9,10 +10,10 @@ import { SideMenu } from './components/SideMenu';
 import { HistoryView } from './components/HistoryView';
 import { analyzeLabReport } from './services/geminiService';
 import { Logo } from './components/Logo';
-import { MiniChat } from './components/MiniChat'; // Feature: Mini Chat
-import { DietPlansView } from './components/DietPlansView'; // New Module 1
-import { SeasonalGuideView } from './components/SeasonalGuideView'; // New Module 2
-import { HelpCentreView } from './components/HelpCentreView'; // New Module 3
+import { MiniChat } from './components/MiniChat'; 
+import { DietPlansView } from './components/DietPlansView'; 
+import { SeasonalGuideView } from './components/SeasonalGuideView'; 
+import { HelpCentreView } from './components/HelpCentreView'; 
 
 // Utility to convert file to Data URL for storage/display
 const fileToDataURL = (file: File): Promise<string> => {
@@ -42,8 +43,24 @@ const App: React.FC = () => {
   const [chatInitialQuestion, setChatInitialQuestion] = useState<string | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
 
+  // Disclaimer State
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+
   // Derived state
   const currentProfile = profiles.find(p => p.id === currentProfileId) || null;
+
+  // Disclaimer Check
+  useEffect(() => {
+    const hasSeen = localStorage.getItem('hasSeenDisclaimer');
+    if (!hasSeen) {
+      setShowDisclaimer(true);
+    }
+  }, []);
+
+  const handleDisclaimerAgree = () => {
+    localStorage.setItem('hasSeenDisclaimer', 'true');
+    setShowDisclaimer(false);
+  };
 
   // Persistence: Load from localStorage on mount
   useEffect(() => {
@@ -241,6 +258,7 @@ const App: React.FC = () => {
         return currentProfile ? <Dashboard profile={currentProfile} onNavigate={setStep} /> : null;
 
       case AppStep.Profile:
+        // Original Profile Form for creation
         return (
           <ProfileForm 
             initialData={currentProfile} 
@@ -248,6 +266,16 @@ const App: React.FC = () => {
             isEditing={!!currentProfileId}
           />
         );
+
+      case AppStep.ProfilePage:
+        // New Comprehensive Profile Page for Editing
+        return currentProfile ? (
+          <ProfilePageView 
+            profile={currentProfile} 
+            onSave={handleProfileSave} 
+            onBack={() => setStep(AppStep.Dashboard)} 
+          /> 
+        ) : null;
 
       case AppStep.Upload:
       case AppStep.Analyzing:
@@ -281,7 +309,8 @@ const App: React.FC = () => {
             onReset={handleReset} 
             reportDate={currentReportDate} 
             reportImage={currentReportImage} 
-            onAskQuestion={handleAskQuestion} // Pass Chat Handler
+            onAskQuestion={handleAskQuestion}
+            userLanguage={currentProfile?.language}
           />
         ) : null;
 
@@ -295,16 +324,20 @@ const App: React.FC = () => {
         ) : null;
 
       case AppStep.Settings:
+        // Can optionally redirect to ProfilePage now since preferences are there
         return (
            <div className="text-center py-20 bg-white/80 backdrop-blur-sm rounded-3xl border border-brand-50 shadow-lg animate-fade-in">
              <div className="text-6xl mb-4">⚙️</div>
              <h2 className="text-2xl font-bold text-slate-800 mb-2">Settings</h2>
              <p className="text-slate-500 mb-8">Manage notifications and app preferences.</p>
-             <button onClick={() => setStep(AppStep.Dashboard)} className="text-brand-600 font-semibold hover:underline">Return to Dashboard</button>
+             <button onClick={() => setStep(AppStep.ProfilePage)} className="text-brand-600 font-semibold hover:underline">Go to Profile Settings</button>
+             <div className="mt-4">
+                <button onClick={() => setStep(AppStep.Dashboard)} className="text-slate-400 font-semibold text-xs hover:text-slate-600">Back to Dashboard</button>
+             </div>
            </div>
         );
 
-      // --- NEW MODULES (Updated with profile support) ---
+      // --- NEW MODULES ---
       case AppStep.DietPlans:
         return currentProfile ? <DietPlansView profile={currentProfile} onBack={() => setStep(AppStep.Dashboard)} /> : null;
       
@@ -382,7 +415,6 @@ const App: React.FC = () => {
          </div>
       </footer>
       
-      {/* Feature: Mini Chat (Always available, receives initial question from report) */}
       {currentProfile && (
         <div className="no-print">
           <MiniChat 
@@ -392,6 +424,27 @@ const App: React.FC = () => {
             isOpenExternal={isChatOpen}
             onToggleExternal={setIsChatOpen}
           />
+        </div>
+      )}
+
+      {/* Feature: First-Time Use Disclaimer Modal */}
+      {showDisclaimer && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-fade-in no-print">
+           <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full border-t-8 border-brand-500 relative">
+              <h2 className="text-2xl font-bold text-slate-800 mb-4">Welcome to MyHealthLens</h2>
+              <div className="prose prose-sm text-slate-600 mb-6 bg-brand-50/50 p-4 rounded-xl border border-brand-100">
+                <p>MyHealthLens provides general informational guidance based on your uploaded reports.</p>
+                <p><strong>It does not give a medical diagnosis and should not replace professional medical care.</strong></p>
+                <p>Always consult a qualified doctor for any medical concerns or decisions. AI-generated results may sometimes be incomplete or inaccurate.</p>
+                <p className="mb-0">By continuing, you agree to use this app for informational purposes only.</p>
+              </div>
+              <button 
+                onClick={handleDisclaimerAgree} 
+                className="w-full py-4 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 shadow-md transition-transform hover:scale-[1.02]"
+              >
+                I Understand
+              </button>
+           </div>
         </div>
       )}
     </div>

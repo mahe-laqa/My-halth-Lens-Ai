@@ -124,7 +124,7 @@ export const analyzeLabReport = async (
       ],
       response_format: {"type": "json_object"},
       temperature: 0.1,
-      max_tokens: 2500,
+      max_tokens: 200,
     }),
   });
 
@@ -229,7 +229,7 @@ IMPORTANT: You have access to the user's recently analyzed lab report. Use this 
         },
       ],
       temperature: 0.7,
-      max_tokens: 500,
+      max_tokens: 200,
     }),
   });
 

@@ -16,66 +16,67 @@ export const analyzeLabReport = async (
 
   const systemInstruction = constructSystemPrompt(profile);
 
-  // augment system instruction with new feature requirements
+  // augment system instruction with enhanced feature requirements
   const augmentedInstruction = `
     ${systemInstruction}
 
-    ADDITIONAL ANALYSIS REQUIREMENTS:
-    1. Trend Insight: If previous reports exist in context, briefly mention improvements or patterns.
-    2. Image Quality: Briefly state if the image is clear.
-    3. Simple Definitions: For every test, provide a 1-line "what is this" definition (Medical Term Simplifier).
-    4. Food Suggestions: For every test, provide a specific food action (Nutrition Matcher).
-    5. Daily Routine Tip: For every test, provide a small lifestyle habit change (Lifestyle Matcher).
-    6. Follow-up Questions: Generate 2 questions the user might be thinking.
-    7. Next Test: Suggest one relevant follow-up test.
-    8. Risk Flags: Identify if 'Sleep', 'Stress', or 'Diet' seem to be root causes.
-    9. Medications: If user listed medications (${profile.medications || 'None'}), mention general interactions non-diagnostically.
-    10. Short Summary: Create a 30-second read summary (4-5 lines).
+    ENHANCED ANALYSIS REQUIREMENTS:
+    1. Trend Insight: If previous reports exist in context, briefly mention improvements or patterns (1-2 sentences).
+    2. Image Quality: Briefly assess if the image is clear and readable (1 sentence).
+    3. Simple Definitions: For every test, provide a 1-line "what is this" definition.
+    4. Food Suggestions: For every test, provide a specific, actionable food recommendation.
+    5. Daily Routine Tip: For every test, provide a small, practical lifestyle habit change.
+    6. Follow-up Questions: Generate exactly 2 questions the user might be thinking.
+    7. Next Test: Suggest one relevant follow-up test based on findings.
+    8. Risk Flags: Identify if 'Sleep', 'Stress', or 'Diet' seem to be root causes (list as array).
+    9. Medications: If user listed medications (${profile.medications || 'None'}), mention general interactions non-diagnostically (1-2 sentences).
+    10. Short Summary: Create a concise 4-5 line summary readable in 30 seconds.
 
     CRITICAL INSTRUCTIONS:
-    1. Analyze the uploaded lab report image and extract ALL test names, values, and reference ranges.
-    2. Return ONLY a valid JSON object with this EXACT structure:
+    1. Carefully analyze the uploaded lab report image and extract ALL visible test names, values, and reference ranges.
+    2. Determine status for each test: "Normal", "Slightly Low/High", "Borderline", "Medical Consultation Recommended", or "Correlation Alert".
+    3. Be concise in explanations to fit within response limits.
+    4. Return ONLY a valid JSON object with this EXACT structure (no extra fields or text):
     {
-      "summary": "Brief overall summary string",
-      "shortSummary": "4-5 line summary string",
+      "summary": "Brief overall summary (1-2 sentences)",
+      "shortSummary": "4-5 line summary",
       "results": [
         {
-          "testName": "Test name string",
-          "value": "Value string",
-          "range": "Reference range string",
-          "status": "Normal|Slightly Low/High|Borderline|Medical Consultation Recommended|Correlation Alert",
-          "explanation": "Detailed explanation string",
-          "simpleDefinition": "One-line definition string",
-          "foodSuggestion": "Specific food recommendation string",
-          "dailyRoutineTip": "Lifestyle tip string"
+          "testName": "string",
+          "value": "string",
+          "range": "string",
+          "status": "string",
+          "explanation": "1-2 sentence explanation",
+          "simpleDefinition": "1-line definition",
+          "foodSuggestion": "specific food action",
+          "dailyRoutineTip": "small habit change"
         }
       ],
       "nutrition": [
         {
-          "goal": "Nutrition goal string",
-          "recommended": ["food1", "food2"],
-          "avoid": ["food1", "food2"]
+          "goal": "string",
+          "recommended": ["string"],
+          "avoid": ["string"]
         }
       ],
-      "lifestyle": ["tip1", "tip2", "tip3"],
-      "professionalConsultation": "Consultation advice or null",
-      "disclaimer": "Standard disclaimer text",
-      "trendInsight": "Trend analysis string",
-      "imageQuality": "Image quality assessment",
-      "followUpQuestions": ["question1", "question2"],
-      "nextTestSuggestion": "Suggested next test",
-      "riskFactors": ["factor1", "factor2"],
-      "medicationNotes": "Medication interaction notes"
+      "lifestyle": ["string"],
+      "professionalConsultation": "string or null",
+      "disclaimer": "Standard medical disclaimer",
+      "trendInsight": "string",
+      "imageQuality": "string",
+      "followUpQuestions": ["string", "string"],
+      "nextTestSuggestion": "string",
+      "riskFactors": ["string"],
+      "medicationNotes": "string"
     }
-    3. IMPORTANT:
-       - "results" MUST be an array of objects (one per test found)
-       - "nutrition" MUST be an array of objects with goal/recommended/avoid
-       - "lifestyle" MUST be an array of strings
-       - "followUpQuestions" MUST be an array of strings
-       - "riskFactors" MUST be an array of strings
-       - Do NOT return objects where arrays are expected
-       - Include ALL tests visible in the report image
-  `;
+    5. IMPORTANT CONSTRAINTS:
+       - "results" MUST be an array of objects (one per test).
+       - "nutrition" MUST be an array of objects.
+       - "lifestyle", "followUpQuestions", "riskFactors" MUST be arrays of strings.
+       - Include ALL tests from the report image.
+       - Do NOT return objects where arrays are expected.
+       - Ensure the entire response is valid JSON and fits within token limits.
+   `;
 
   const base64Data = await fileToGenerativePart(file);
 
@@ -124,7 +125,7 @@ export const analyzeLabReport = async (
       ],
       response_format: {"type": "json_object"},
       temperature: 0.1,
-      max_tokens: 200,
+      max_tokens: 500,
     }),
   });
 
@@ -229,7 +230,7 @@ IMPORTANT: You have access to the user's recently analyzed lab report. Use this 
         },
       ],
       temperature: 0.7,
-      max_tokens: 200,
+      max_tokens: 500,
     }),
   });
 

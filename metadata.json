@@ -1,0 +1,7 @@
+{
+  "name": "MyHealthLens AI",
+  "description": "A sophisticated, culturally-aware health education tool that interprets lab reports and provides safe, nutritional, and lifestyle guidance.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

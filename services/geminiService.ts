@@ -19,8 +19,8 @@ const fetchWithFallbackAndRetry = async (
   }
   // Models and their corresponding API version prefixes.
   const modelConfigs = [
-    { model: "gemini-2.5-flash", version: "v1" },
-    { model: "gemini-2.0-flash", version: "v1" }
+    { model: "gemini-3.5-flash", version: "v1" },
+    { model: "gemini-2.5-flash", version: "v1" }
   ];
   let lastError: Error | null = null;
 

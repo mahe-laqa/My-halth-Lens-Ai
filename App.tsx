@@ -72,7 +72,14 @@ const App: React.FC = () => {
           setProfiles(parsed);
           if (parsed.length > 0) {
             setCurrentProfileId(parsed[0].id);
-            setStep(AppStep.Dashboard);
+            // Only auto-redirect to the Dashboard if the profile has at least one report.
+            // Otherwise, stay on AppStep.Welcome so the onboarding/profile flow is visible.
+            const firstProfile = parsed[0];
+            if (firstProfile.reports && firstProfile.reports.length > 0) {
+              setStep(AppStep.Dashboard);
+            } else {
+              setStep(AppStep.Welcome);
+            }
           }
         }
       } catch (e) {

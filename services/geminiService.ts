@@ -122,7 +122,7 @@ export const analyzeLabReport = async (
       generationConfig: {
         responseMimeType: "application/json",
         temperature: 0.1,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 8192,
       },
     }),
   });
@@ -140,7 +140,25 @@ export const analyzeLabReport = async (
   if (!responseText) throw new Error("No response from AI");
 
   try {
-    const parsed = JSON.parse(responseText) as AnalysisResponse;
+    let cleanText = responseText.trim();
+    if (cleanText.startsWith("```")) {
+      cleanText = cleanText.replace(/^```(?:json)?\n?/i, "").replace(/\n?```$/, "");
+    }
+    cleanText = cleanText.trim();
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(cleanText);
+    } catch (e) {
+      const startIdx = cleanText.indexOf("{");
+      const endIdx = cleanText.lastIndexOf("}");
+      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        parsed = JSON.parse(cleanText.substring(startIdx, endIdx + 1));
+      } else {
+        throw e;
+      }
+    }
+
     console.log('Parsed Analysis:', parsed);
     console.log('Results:', parsed.results);
 
@@ -151,7 +169,7 @@ export const analyzeLabReport = async (
     if (!Array.isArray(parsed.followUpQuestions)) parsed.followUpQuestions = [];
     if (!Array.isArray(parsed.riskFactors)) parsed.riskFactors = [];
 
-    return parsed;
+    return parsed as AnalysisResponse;
   } catch (e) {
     console.error("Failed to parse JSON", e);
     console.error("Response Text:", responseText);

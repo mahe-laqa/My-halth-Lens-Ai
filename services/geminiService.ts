@@ -7,8 +7,8 @@ export const analyzeLabReport = async (
   profile: UserProfile,
   file: File | null
 ): Promise<AnalysisResponse> => {
-  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
-  if (!apiKey) throw new Error("API Key not found. Please set VITE_OPENROUTER_API_KEY in .env.local");
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) throw new Error("API Key not found. Please set VITE_GEMINI_API_KEY in .env.local");
 
   if (!file) {
     throw new Error("Please upload a report image or PDF.");
@@ -89,53 +89,51 @@ export const analyzeLabReport = async (
     textContent += `\n\nUser's Previous History Context:\n${historySummary}`;
   }
 
-  let messageContent: any[] = [
-    {
-      type: "image_url",
-      image_url: {
-        url: `data:${file.type};base64,${base64Data}`
-      }
-    },
-    {
-      type: "text",
-      text: textContent
-    }
-  ];
-
-  // Call OpenRouter API
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  // Call Gemini API direct fetch
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": window.location.origin,
-      "X-Title": "MyHealthLens",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "openai/gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: augmentedInstruction,
-        },
+      contents: [
         {
           role: "user",
-          content: messageContent,
+          parts: [
+            {
+              inlineData: {
+                mimeType: file.type,
+                data: base64Data,
+              },
+            },
+            {
+              text: textContent,
+            },
+          ],
         },
       ],
-      response_format: {"type": "json_object"},
-      temperature: 0.1,
-      max_tokens: 500,
+      systemInstruction: {
+        parts: [
+          {
+            text: augmentedInstruction,
+          },
+        ],
+      },
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.1,
+        maxOutputTokens: 2048,
+      },
     }),
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`OpenRouter API error: ${error.error?.message || 'Unknown error'}`);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText || 'Unknown error'}`);
   }
 
   const data = await response.json();
-  const responseText = data.choices?.[0]?.message?.content;
+  const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
   console.log('AI Response Text:', responseText);
 
@@ -178,7 +176,9 @@ export const chatWithHealthAssistant = async (
   message: string,
   currentReportContext?: AnalysisResponse | null
 ): Promise<string> => {
-  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey) throw new Error("API Key not found. Please set VITE_GEMINI_API_KEY in .env.local");
+
   const systemInstruction = constructSystemPrompt(profile);
 
   let contextInfo = '';
@@ -209,36 +209,42 @@ IMPORTANT: You have access to the user's recently analyzed lab report. Use this 
     IMPORTANT: Respond helpfully and in the user's language.
   `;
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  // Call Gemini API direct fetch
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "HTTP-Referer": window.location.origin,
-      "X-Title": "MyHealthLens",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "openai/gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: augmentedInstruction,
-        },
+      contents: [
         {
           role: "user",
-          content: message,
+          parts: [
+            {
+              text: message,
+            },
+          ],
         },
       ],
-      temperature: 0.7,
-      max_tokens: 500,
+      systemInstruction: {
+        parts: [
+          {
+            text: augmentedInstruction,
+          },
+        ],
+      },
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1024,
+      },
     }),
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`OpenRouter API error: ${error.error?.message || 'Unknown error'}`);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText || 'Unknown error'}`);
   }
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || "I'm sorry, I couldn't process that.";
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't process that.";
 };

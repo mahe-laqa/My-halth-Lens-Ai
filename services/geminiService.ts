@@ -3,18 +3,32 @@
 import { UserProfile, AnalysisResponse } from "../types";
 import { constructSystemPrompt } from "../constants";
 
+const getApiKey = (): string => {
+  // Vite exposes env vars prefixed with VITE_ on the client side.
+  // On Vercel serverless deployments the variable may be injected without the prefix.
+  // Fall back to a plain environment variable if the VITE version is undefined.
+  return import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || "";
+};
+
 const fetchWithFallbackAndRetry = async (
-  apiKey: string,
   body: any
 ): Promise<Response> => {
-  const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    throw new Error("API Key not found. Set VITE_GEMINI_API_KEY in .env.local or GEMINI_API_KEY in Vercel env.");
+  }
+  // Models and their corresponding API version prefixes.
+  const modelConfigs = [
+    { model: "gemini-2.5-flash", version: "v1" },
+    { model: "gemini-2.0-flash", version: "v1" }
+  ];
   let lastError: Error | null = null;
 
-  for (const model of models) {
+  for (const { model, version } of modelConfigs) {
     let retries = 2;
     while (retries > 0) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${apiKey}`;
         const res = await fetch(url, {
           method: "POST",
           headers: {
@@ -62,8 +76,8 @@ export const analyzeLabReport = async (
   profile: UserProfile,
   file: File | null
 ): Promise<AnalysisResponse> => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) throw new Error("API Key not found. Please set VITE_GEMINI_API_KEY in .env.local");
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error("API Key not found. Set VITE_GEMINI_API_KEY in .env.local or GEMINI_API_KEY in Vercel env.");
 
   if (!file) {
     throw new Error("Please upload a report image or PDF.");
@@ -145,7 +159,7 @@ export const analyzeLabReport = async (
   }
 
   // Call Gemini API with automatic fallback and retry
-  const response = await fetchWithFallbackAndRetry(apiKey, {
+  const response = await fetchWithFallbackAndRetry({
     contents: [
       {
         role: "user",
@@ -238,8 +252,8 @@ export const chatWithHealthAssistant = async (
   message: string,
   currentReportContext?: AnalysisResponse | null
 ): Promise<string> => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey) throw new Error("API Key not found. Please set VITE_GEMINI_API_KEY in .env.local");
+  const apiKey = getApiKey();
+  if (!apiKey) throw new Error("API Key not found. Set VITE_GEMINI_API_KEY in .env.local or GEMINI_API_KEY in Vercel env.");
 
   const systemInstruction = constructSystemPrompt(profile);
 
@@ -272,7 +286,7 @@ IMPORTANT: You have access to the user's recently analyzed lab report. Use this 
   `;
 
   // Call Gemini API with automatic fallback and retry
-  const response = await fetchWithFallbackAndRetry(apiKey, {
+  const response = await fetchWithFallbackAndRetry({
     contents: [
       {
         role: "user",

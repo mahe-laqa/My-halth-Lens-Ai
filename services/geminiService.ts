@@ -3,6 +3,61 @@
 import { UserProfile, AnalysisResponse } from "../types";
 import { constructSystemPrompt } from "../constants";
 
+const fetchWithFallbackAndRetry = async (
+  apiKey: string,
+  body: any
+): Promise<Response> => {
+  const models = ["gemini-2.5-flash", "gemini-2.0-flash"];
+  let lastError: Error | null = null;
+
+  for (const model of models) {
+    let retries = 2;
+    while (retries > 0) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+
+        if (res.ok) {
+          return res;
+        }
+
+        const errorData = await res.json().catch(() => ({}));
+        const errMsg = errorData.error?.message || res.statusText || "Unknown error";
+        
+        const isRetryable = 
+          res.status === 429 || 
+          res.status >= 500 || 
+          errMsg.toLowerCase().includes("high demand") || 
+          errMsg.toLowerCase().includes("limit") || 
+          errMsg.toLowerCase().includes("overloaded") ||
+          errMsg.toLowerCase().includes("capacity");
+
+        if (!isRetryable) {
+          throw new Error(errMsg);
+        }
+
+        lastError = new Error(errMsg);
+      } catch (err: any) {
+        lastError = err;
+      }
+
+      retries--;
+      if (retries > 0) {
+        // Wait 1.5 seconds before retrying
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+    }
+  }
+
+  throw lastError || new Error("Failed to contact Gemini API after multiple retries");
+};
+
 export const analyzeLabReport = async (
   profile: UserProfile,
   file: File | null
@@ -89,48 +144,37 @@ export const analyzeLabReport = async (
     textContent += `\n\nUser's Previous History Context:\n${historySummary}`;
   }
 
-  // Call Gemini API direct fetch
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              inlineData: {
-                mimeType: file.type,
-                data: base64Data,
-              },
-            },
-            {
-              text: textContent,
-            },
-          ],
-        },
-      ],
-      systemInstruction: {
+  // Call Gemini API with automatic fallback and retry
+  const response = await fetchWithFallbackAndRetry(apiKey, {
+    contents: [
+      {
+        role: "user",
         parts: [
           {
-            text: augmentedInstruction,
+            inlineData: {
+              mimeType: file.type,
+              data: base64Data,
+            },
+          },
+          {
+            text: textContent,
           },
         ],
       },
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.1,
-        maxOutputTokens: 8192,
-      },
-    }),
+    ],
+    systemInstruction: {
+      parts: [
+        {
+          text: augmentedInstruction,
+        },
+      ],
+    },
+    generationConfig: {
+      responseMimeType: "application/json",
+      temperature: 0.1,
+      maxOutputTokens: 8192,
+    },
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText || 'Unknown error'}`);
-  }
 
   const data = await response.json();
   const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -227,41 +271,30 @@ IMPORTANT: You have access to the user's recently analyzed lab report. Use this 
     IMPORTANT: Respond helpfully and in the user's language.
   `;
 
-  // Call Gemini API direct fetch
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: message,
-            },
-          ],
-        },
-      ],
-      systemInstruction: {
+  // Call Gemini API with automatic fallback and retry
+  const response = await fetchWithFallbackAndRetry(apiKey, {
+    contents: [
+      {
+        role: "user",
         parts: [
           {
-            text: augmentedInstruction,
+            text: message,
           },
         ],
       },
-      generationConfig: {
-        temperature: 0.7,
-        maxOutputTokens: 1024,
-      },
-    }),
+    ],
+    systemInstruction: {
+      parts: [
+        {
+          text: augmentedInstruction,
+        },
+      ],
+    },
+    generationConfig: {
+      temperature: 0.7,
+      maxOutputTokens: 1024,
+    },
   });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(`Gemini API error: ${errorData.error?.message || response.statusText || 'Unknown error'}`);
-  }
 
   const data = await response.json();
   return data.candidates?.[0]?.content?.parts?.[0]?.text || "I'm sorry, I couldn't process that.";
